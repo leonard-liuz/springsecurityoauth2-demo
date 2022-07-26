@@ -10,8 +10,13 @@ import org.springframework.security.oauth2.config.annotation.configurers.ClientD
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
+import org.springframework.security.oauth2.provider.token.TokenEnhancer;
+import org.springframework.security.oauth2.provider.token.TokenEnhancerChain;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Configuration
 @EnableAuthorizationServer
@@ -33,6 +38,9 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
     @Autowired
     private JwtAccessTokenConverter jwtAccessTokenConverter;
 
+    @Autowired
+    private JwtTokenEnhancer jwtTokenEnhancer;
+
 //    @Autowired
 //    @Qualifier("redisTokenStore")
 //    private TokenStore tokenStore;
@@ -44,11 +52,21 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
      */
     @Override
     public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
+
+        //配置JWT内容增强器
+        TokenEnhancerChain enhancerChain = new TokenEnhancerChain();
+        List<TokenEnhancer> delegates = new ArrayList<>();
+        delegates.add(jwtTokenEnhancer);
+        delegates.add(jwtAccessTokenConverter);
+        enhancerChain.setTokenEnhancers(delegates);
+
+
        endpoints.authenticationManager(authenticationManager)
                .userDetailsService(userService)
                //配置存储令牌策略
                .tokenStore(tokenStore)
-               .accessTokenConverter(jwtAccessTokenConverter);
+               .accessTokenConverter(jwtAccessTokenConverter)
+               .tokenEnhancer(enhancerChain);
                //.tokenStore(tokenStore);
 
     }
